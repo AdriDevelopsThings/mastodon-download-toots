@@ -17,7 +17,7 @@ parser.add_argument(
     "--output",
     type=str,
     required=False,
-    help="Output file, e.g. statuses.json. By default the output file is statuses_{INSTANCE_DOMAIN}_{USERNAME}_{DATE}.json when zip is not enabled, otherwise it's statuses_{INSTANCE_DOMAIN}_{USERNAME}_{DATE}.zip.",
+    help="Output file, e.g. statuses.json. By default the output file is <USERNAME>_<INSTANCE_DOMAIN>_<DATE>.json when zip is not enabled, otherwise it's <USERNAME>_<INSTANCE_DOMAIN>_<DATE>.zip.",
 )
 parser.add_argument(
     "-z",
@@ -57,7 +57,7 @@ def main() -> None:
     output = args.output
     if not output:
         date = datetime.now().strftime("%Y-%m-%d")
-        output = f"statuses_{args.domain}_{me['username']}_{date}.{'zip' if args.zip else 'json'}"
+        output = f"{me['username']}_{args.domain}_{date}.{'zip' if args.zip else 'json'}"
 
     if exists(output):
         if input("Output file already exists, overwriting? [y/n] ").lower() != "y":

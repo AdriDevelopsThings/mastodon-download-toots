@@ -25,7 +25,7 @@ Run
 ```
 mastodon-download-toots <DOMAIN>
 ```
-and it will put all statuses to `statuses_{INSTANCE_DOMAIN}_{USERNAME}_{DATE}.json`. The JSON file contains a list of all statuses. Take a look to the [Mastodon API Documenation: Topic Status](https://docs.joinmastodon.org/entities/Status) to see how these objects look like.
+and it will put all statuses to `<USERNAME>_<INSTANCE_DOMAIN>_<DATE>.json`. The JSON file contains a list of all statuses. Take a look to the [Mastodon API Documenation: Topic Status](https://docs.joinmastodon.org/entities/Status) to see how these objects look like.
 
 ### JSON output and media download
 If you also want to download all media attachments pass the option `-m <MEDIA DIRECTORY>` and all attachments will be stored there. Every media object has this filename structure: `<ATTACHMENT ID>.<FILE SUFFIX>`.
@@ -41,7 +41,7 @@ If you want to archive your output it might be useful to backup everything into 
 ```
 mastodon-download-toots -z <DOMAIN>
 ```
-and it will put everyting to `statuses_<INSTANCE_DOMAIN>_<USERNAME>_<DATE>.zip`.
+and it will put everyting to `<USERNAME>_<INSTANCE_DOMAIN>_<DATE>.zip`.
 
 ### Detailed usage
 This is the output of `mastodon-download-toots --help`:
@@ -53,7 +53,7 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  -o, --output OUTPUT   Output file, e.g. statuses.json. By default the output file is statuses_{INSTANCE_DOMAIN}_{USERNAME}_{DATE}.json when zip is not enabled, otherwise it's statuses_{INSTANCE_DOMAIN}_{USERNAME}_{DATE}.zip.
+  -o, --output OUTPUT   Output file, e.g. statuses.json. By default the output file is <USERNAME>_<INSTANCE_DOMAIN>_<DATE>.json when zip is not enabled, otherwise it's <USERNAME>_<INSTANCE_DOMAIN>_<DATE>.zip.
   -z, --zip             Instead of having one json file and a media directory download everything into a zip file.
   -m, --media-output MEDIA_OUTPUT
                         Enable media downloading by supplying a directory where media files should be downloaded. For zip mode it's always enabled.
