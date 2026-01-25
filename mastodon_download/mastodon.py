@@ -1,7 +1,9 @@
+from datetime import datetime, timezone
 from hashlib import blake2b
 from json import dump, load
 from os import mkdir
 from os.path import exists, join
+from time import sleep, time
 from typing import Optional, TypedDict
 from urllib.parse import urlencode
 
@@ -20,6 +22,19 @@ ACCOUNTS_STATUSES_PATH = "/api/v1/accounts/{ACCOUNT_ID}/statuses"
 REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob"
 SCOPES = "read:statuses profile"
 WEBSITE = "https://github.com/adridevelopsthings/mastodon-download-toots"
+
+
+class RateLimitExceededException(Exception):
+    def __init__(self, reset: datetime) -> None:
+        self.reset = reset
+
+    def wait(self) -> None:
+        """Wait until rate limit shouldn't be exceeded anymore."""
+        waiting_time = (self.reset - datetime.now(timezone.utc)).total_seconds() + 0.1
+        if waiting_time <= 0:
+            return
+        print(f"Waiting until rate limit is over for {round(waiting_time)} seconds...")
+        sleep(waiting_time)
 
 
 class ClientCredentials(TypedDict):
@@ -106,6 +121,10 @@ class Mastodon:
             params=params,
             headers=self.__auth_headers,
         )
+        if response.status_code == 429:
+            raise RateLimitExceededException(
+                datetime.fromisoformat(response.headers["X-RateLimit-Reset"])
+            )
         response.raise_for_status()
         j = response.json()
         return j

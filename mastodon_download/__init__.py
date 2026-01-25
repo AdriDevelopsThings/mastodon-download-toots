@@ -8,7 +8,7 @@ from zipfile import ZipFile
 
 from platformdirs import user_cache_dir
 
-from mastodon_download.mastodon import Mastodon
+from mastodon_download.mastodon import Mastodon, RateLimitExceededException
 
 parser = ArgumentParser("mastodon-download-toots")
 parser.add_argument("domain", type=str, help="Domain, e.g. mastodon.social")
@@ -57,7 +57,9 @@ def main() -> None:
     output = args.output
     if not output:
         date = datetime.now().strftime("%Y-%m-%d")
-        output = f"{me['username']}_{args.domain}_{date}.{'zip' if args.zip else 'json'}"
+        output = (
+            f"{me['username']}_{args.domain}_{date}.{'zip' if args.zip else 'json'}"
+        )
 
     if exists(output):
         if input("Output file already exists, overwriting? [y/n] ").lower() != "y":
@@ -86,7 +88,12 @@ def main() -> None:
             end="\r",
             flush=True,
         )
-        statuses = mastodon.get_user_statuses(me["id"], limit=40, max_id=max_id)
+        try:
+            statuses = mastodon.get_user_statuses(me["id"], limit=40, max_id=max_id)
+        except RateLimitExceededException as e:
+            e.wait()
+            statuses = mastodon.get_user_statuses(me["id"], limit=40, max_id=max_id)
+
         if len(statuses) == 0:
             break
         all_statuses.extend(statuses)
