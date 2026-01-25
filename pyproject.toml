@@ -1,0 +1,22 @@
+[project]
+name = "mastodon-download-toots"
+version = "0.1.0"
+description = "Download mastodon toots as json including media"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "platformdirs>=4.5.1",
+    "requests>=2.32.5",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "types-requests>=2.32.4.20260107",
+]
+
+[project.scripts]
+mastodon-download-toots = "mastodon_download:main"
+
+[tool.setuptools.packages.find]
+include = ["mastodon_download*"]
