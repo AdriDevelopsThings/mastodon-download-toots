@@ -9,6 +9,7 @@ from requests import HTTPError
 
 from mastodon_download.args import parser
 from mastodon_download.mastodon import Mastodon, RateLimitExceededException
+from mastodon_download.sqlite import SqliteDatabase
 
 
 def main() -> None:
@@ -42,10 +43,13 @@ def main() -> None:
 
     output = args.output
     if not output:
-        date = datetime.now().strftime("%Y-%m-%d")
-        output = f"{account['username']}_{instance_domain}_{date}.{'zip' if args.zip else 'json'}"
+        if args.sync_sqlite:
+            output = f"{account['username']}_{instance_domain}.sqlite"
+        else:
+            date = datetime.now().strftime("%Y-%m-%d")
+            output = f"{account['username']}_{instance_domain}_{date}.{'zip' if args.zip else 'json'}"
 
-    if exists(output):
+    if not args.sync_sqlite and exists(output):
         if input("Output file already exists, overwriting? [y/n] ").lower() != "y":
             return
         remove(output)
@@ -58,35 +62,54 @@ def main() -> None:
 
     if not args.zip and media_output and not exists(media_output):
         mkdir(media_output)
-    
+
     zipfile = None
     if args.zip:
         zipfile = ZipFile(output, "x")
 
+    sqlite = None
+    if args.sync_sqlite:
+        sqlite = SqliteDatabase(output)
+        sqlite.set_account(account)
+
     all_statuses: list[dict] = []
+    status_count = 0
+    min_id: Optional[str] = None
     max_id: Optional[str] = None
     page = 1
+
+    if sqlite:
+        min_id = sqlite.get_newest_status()
 
     print("Fetching statuses...")
     while True:
         print(
-            f"\033[KPage {page} (already fetched: {len(all_statuses)})",
+            f"\033[KPage {page} (already fetched: {status_count})",
             end="\r",
             flush=True,
         )
         try:
             statuses = mastodon.get_user_statuses(
-                account["id"], limit=40, max_id=max_id
+                account["id"], limit=40, max_id=max_id, min_id=min_id
             )
         except RateLimitExceededException as e:
             e.wait()
             statuses = mastodon.get_user_statuses(
-                account["id"], limit=40, max_id=max_id
+                account["id"], limit=40, max_id=max_id, min_id=min_id
             )
 
         if len(statuses) == 0:
             break
-        all_statuses.extend(statuses)
+
+        if sqlite:
+            for status in statuses:
+                sqlite.add_status(status)
+        else:
+            all_statuses.extend(statuses)
+        status_count += len(statuses)
+
+        if sqlite and page == 1:
+            sqlite.set_newest_status(statuses[0]["id"])
 
         if media_output:
             for status in statuses:
@@ -135,6 +158,10 @@ def main() -> None:
 
         max_id = statuses[-1]["id"]
         page += 1
+
+    if sqlite:
+        sqlite.close()
+        return
 
     j: Any
     if args.optimize_json:

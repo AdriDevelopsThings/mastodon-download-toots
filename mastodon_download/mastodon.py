@@ -120,11 +120,17 @@ class Mastodon:
         return j
 
     def get_user_statuses(
-        self, account_id: str, max_id: Optional[str] = None, limit: Optional[int] = None
+        self,
+        account_id: str,
+        max_id: Optional[str] = None,
+        limit: Optional[int] = None,
+        min_id: Optional[str] = None,
     ) -> list[dict]:
         params: dict[str, str] = {}
         if max_id:
             params["max_id"] = max_id
+        if min_id:
+            params["min_id"] = min_id
         if limit:
             params["limit"] = str(limit)
 

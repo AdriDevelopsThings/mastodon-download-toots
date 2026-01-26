@@ -29,11 +29,17 @@ parser.add_argument(
     help="Store the account once in the json and remove it from every status for smaller json",
 )
 parser.add_argument(
+    "-s",
+    "--sync-sqlite",
+    action="store_true",
+    help="Instead of putting everything in a zip file sync the date to a sqlite file. This is recommended if you do your backups frequently because with this option they are incremental. The path of the sqlite database is configurable using the `-o` option.",
+)
+parser.add_argument(
     "-o",
     "--output",
     type=str,
     required=False,
-    help="Output file, e.g. statuses.json. By default the output file is <USERNAME>_<INSTANCE_DOMAIN>_<DATE>.json when zip is not enabled, otherwise it's <USERNAME>_<INSTANCE_DOMAIN>_<DATE>.zip.",
+    help="Output file, e.g. statuses.json. By default the output file is <USERNAME>_<INSTANCE_DOMAIN>_<DATE>.json when zip is not enabled, otherwise it's <USERNAME>_<INSTANCE_DOMAIN>_<DATE>.zip. When sqlite sync is enabled it's <USERNAME>_<INSTANCE_DOMAIN>.sqlite.",
 )
 parser.add_argument(
     "-z",
@@ -47,7 +53,11 @@ parser.add_argument(
     action="store_true",
     help="Enable media downloading . For zip mode it's always enabled.",
 )
-parser.add_argument("--media-output", type=str, help="The directory where media should be put in when media downloading is enabled. The default is <USERNAME>_<INSTANCE_DOMAIN>_media.")
+parser.add_argument(
+    "--media-output",
+    type=str,
+    help="The directory where media should be put in when media downloading is enabled. The default is <USERNAME>_<INSTANCE_DOMAIN>_media.",
+)
 
 parser.add_argument(
     "-c",
