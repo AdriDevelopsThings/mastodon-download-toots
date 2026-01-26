@@ -13,6 +13,17 @@ from mastodon_download.mastodon import Mastodon, RateLimitExceededException
 parser = ArgumentParser("mastodon-download-toots")
 parser.add_argument("domain", type=str, help="Domain, e.g. mastodon.social")
 parser.add_argument(
+    "-a",
+    "--account-profile",
+    type=str,
+    help="If you want to manage multiple accounts on one instance you should set an account profile name that is used for caching the access token",
+)
+parser.add_argument(
+    "--force-login",
+    action="store_true",
+    help="Force a new login even if a cached access token exists",
+)
+parser.add_argument(
     "-o",
     "--output",
     type=str,
@@ -43,8 +54,10 @@ parser.add_argument(
 
 def main() -> None:
     args = parser.parse_args()
-    mastodon = Mastodon.from_instance_domain(args.domain, args.cache_dir)
-    if not mastodon.authorized:
+    mastodon = Mastodon.from_instance_domain(
+        args.domain, args.cache_dir, account_profile=args.account_profile
+    )
+    if not mastodon.authorized or args.force_login:
         print(
             "Open the following url in the browser, authorize and than paste the shown authorize code here."
         )

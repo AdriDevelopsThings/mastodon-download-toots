@@ -67,7 +67,9 @@ class Mastodon:
         return j
 
     @classmethod
-    def from_instance_domain(cls, domain: str, cache_dir: str) -> "Mastodon":
+    def from_instance_domain(
+        cls, domain: str, cache_dir: str, account_profile: Optional[str] = None
+    ) -> "Mastodon":
         response = requests.get(f"https://{domain}{WEBFINGER_PATH}")
         if not response.url.endswith(WEBFINGER_PATH):
             raise Exception(
@@ -77,10 +79,13 @@ class Mastodon:
         requests.head(instance_url).raise_for_status()
         if Mastodon.__get_nodeinfo(instance_url)["software"]["name"] != "mastodon":
             raise Exception(f"Instance '{instance_url}' is not a mastodon instance")
-        return cls(instance_url, cache_dir)
+        return cls(instance_url, cache_dir, account_profile=account_profile)
 
-    def __init__(self, instance_url: str, cache_dir: str) -> None:
+    def __init__(
+        self, instance_url: str, cache_dir: str, account_profile: Optional[str] = None
+    ) -> None:
         self.__instance_url = instance_url
+        self.__account_profile = account_profile
         self.__cached_client_credentials: Optional[ClientCredentials] = None
         self.__cached_user_credentials: Optional[Token] = None
         self.__cache_dir = cache_dir
@@ -210,7 +215,10 @@ class Mastodon:
 
     @property
     def __client_credentials_path(self) -> str:
-        return join(self.__cache_dir, f"{self.__instance_hash}_client.json")
+        return join(
+            self.__cache_dir,
+            f"{self.__instance_hash}_{f'{self.__account_profile}_' if self.__account_profile else ''}client.json",
+        )
 
     @property
     def __user_credentials_path(self) -> str:
