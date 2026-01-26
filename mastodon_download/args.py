@@ -43,10 +43,12 @@ parser.add_argument(
 )
 parser.add_argument(
     "-m",
-    "--media-output",
-    type=str,
-    help="Enable media downloading by supplying a directory where media files should be downloaded. For zip mode it's always enabled.",
+    "--media",
+    action="store_true",
+    help="Enable media downloading . For zip mode it's always enabled.",
 )
+parser.add_argument("--media-output", type=str, help="The directory where media should be put in when media downloading is enabled. The default is <USERNAME>_<INSTANCE_DOMAIN>_media.")
+
 parser.add_argument(
     "-c",
     "--cache-dir",

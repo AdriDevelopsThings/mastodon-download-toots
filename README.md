@@ -28,9 +28,9 @@ mastodon-download-toots <DOMAIN>
 and it will put all statuses to `<USERNAME>_<INSTANCE_DOMAIN>_<DATE>.json`. The JSON file contains a list of all statuses. Take a look to the [Mastodon API Documenation: Topic Status](https://docs.joinmastodon.org/entities/Status) to see how these objects look like.
 
 ### JSON output and media download
-If you also want to download all media attachments pass the option `-m <MEDIA DIRECTORY>` and all attachments will be stored there. Every media object has this filename structure: `<ATTACHMENT ID>.<FILE SUFFIX>`.
+If you also want to download all media attachments pass the option `-m` and all attachments will be stored in `<USERNAME>_<INSTANCE_DOMAIN>_media` (configure this directory using `--media-output`). Every media object has this filename structure: `<ATTACHMENT ID>.<FILE SUFFIX>`.
 ```
-mastodon-download-toots -m media <DOMAIN>
+mastodon-download-toots -m <DOMAIN>
 ```
 
 ### ZIP file output
@@ -46,7 +46,7 @@ and it will put everyting to `<USERNAME>_<INSTANCE_DOMAIN>_<DATE>.zip`.
 ### Detailed usage
 This is the output of `mastodon-download-toots --help`:
 ```
-usage: mastodon-download-toots [-h] [-a ACCOUNT_PROFILE] [--force-login] [--purge-cache] [-u USER] [--optimize-json] [-o OUTPUT] [-z] [-m MEDIA_OUTPUT] [-c CACHE_DIR] domain
+usage: mastodon-download-toots [-h] [-a ACCOUNT_PROFILE] [--force-login] [--purge-cache] [-u USER] [--optimize-json] [-o OUTPUT] [-z] [-m] [--media-output MEDIA_OUTPUT] [-c CACHE_DIR] domain
 
 positional arguments:
   domain                Domain, e.g. mastodon.social
@@ -61,7 +61,8 @@ options:
   --optimize-json       Store the account once in the json and remove it from every status for smaller json
   -o, --output OUTPUT   Output file, e.g. statuses.json. By default the output file is <USERNAME>_<INSTANCE_DOMAIN>_<DATE>.json when zip is not enabled, otherwise it's <USERNAME>_<INSTANCE_DOMAIN>_<DATE>.zip.
   -z, --zip             Instead of having one json file and a media directory download everything into a zip file.
-  -m, --media-output MEDIA_OUTPUT
-                        Enable media downloading by supplying a directory where media files should be downloaded. For zip mode it's always enabled.
+  -m, --media           Enable media downloading . For zip mode it's always enabled.
+  --media-output MEDIA_OUTPUT
+                        The directory where media should be put in when media downloading is enabled. The default is <USERNAME>_<INSTANCE_DOMAIN>_media.
   -c, --cache-dir CACHE_DIR
 ```

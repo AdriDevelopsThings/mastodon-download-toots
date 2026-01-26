@@ -50,13 +50,15 @@ def main() -> None:
             return
         remove(output)
 
-    if not args.zip and args.media_output and not exists(args.media_output):
-        mkdir(args.media_output)
-
     media_output = args.media_output
+    if args.media and not media_output:
+        media_output = f"{account['username']}_{instance_domain}_media"
     if args.zip:
         media_output = "media"
 
+    if not args.zip and media_output and not exists(media_output):
+        mkdir(media_output)
+    
     zipfile = None
     if args.zip:
         zipfile = ZipFile(output, "x")
@@ -135,7 +137,7 @@ def main() -> None:
         page += 1
 
     j: Any
-    if args.smaller_json:
+    if args.optimize_json:
         ac = all_statuses[0]["account"] if len(all_statuses) > 0 else None
         for status in all_statuses:
             del status["account"]
