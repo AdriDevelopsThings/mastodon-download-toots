@@ -46,7 +46,7 @@ and it will put everyting to `<USERNAME>_<INSTANCE_DOMAIN>_<DATE>.zip`.
 ### Detailed usage
 This is the output of `mastodon-download-toots --help`:
 ```
-usage: mastodon-download-toots [-h] [-a ACCOUNT_PROFILE] [--force-login] [-o OUTPUT] [-z] [-m MEDIA_OUTPUT] [-c CACHE_DIR] domain
+usage: mastodon-download-toots [-h] [-a ACCOUNT_PROFILE] [--force-login] [--purge-cache] [-u USER] [--optimize-json] [-o OUTPUT] [-z] [-m MEDIA_OUTPUT] [-c CACHE_DIR] domain
 
 positional arguments:
   domain                Domain, e.g. mastodon.social
@@ -56,6 +56,9 @@ options:
   -a, --account-profile ACCOUNT_PROFILE
                         If you want to manage multiple accounts on one instance you should set an account profile name that is used for caching the access token
   --force-login         Force a new login even if a cached access token exists
+  --purge-cache
+  -u, --user USER       Download data for another user than you, must be an exact address like 'adridoesthings@chaos.social'
+  --optimize-json       Store the account once in the json and remove it from every status for smaller json
   -o, --output OUTPUT   Output file, e.g. statuses.json. By default the output file is <USERNAME>_<INSTANCE_DOMAIN>_<DATE>.json when zip is not enabled, otherwise it's <USERNAME>_<INSTANCE_DOMAIN>_<DATE>.zip.
   -z, --zip             Instead of having one json file and a media directory download everything into a zip file.
   -m, --media-output MEDIA_OUTPUT

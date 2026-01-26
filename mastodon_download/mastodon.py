@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
 from hashlib import blake2b
 from json import dump, load
-from os import mkdir
+from math import ceil
+from os import listdir, mkdir, remove
 from os.path import exists, join
 from time import sleep, time
-from typing import Optional, TypedDict
+from typing import Any, Optional, TypedDict
 from urllib.parse import urlencode
 
 import requests
@@ -18,10 +19,13 @@ AUTHORIZE_PATH = "/oauth/authorize"
 TOKEN_PATH = "/oauth/token"
 VERIFIY_CREDENTIALS_PATH = "/api/v1/accounts/verify_credentials"
 ACCOUNTS_STATUSES_PATH = "/api/v1/accounts/{ACCOUNT_ID}/statuses"
+ACCOUNTS_SEARCH_PATH = "/api/v1/accounts/search"
 
 REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob"
-SCOPES = "read:statuses profile"
+SCOPES = "read:statuses read:accounts profile"
 WEBSITE = "https://github.com/adridevelopsthings/mastodon-download-toots"
+USER_AGENT = f"mastodon-download-toots <{WEBSITE}>"
+TIMEOUT = 10
 
 
 class RateLimitExceededException(Exception):
@@ -33,8 +37,15 @@ class RateLimitExceededException(Exception):
         waiting_time = (self.reset - datetime.now(timezone.utc)).total_seconds() + 0.1
         if waiting_time <= 0:
             return
-        print(f"Waiting until rate limit is over for {round(waiting_time)} seconds...")
-        sleep(waiting_time)
+        waiting_time = ceil(waiting_time)
+        print(
+            f"\nWaiting until rate limit is over for {round(waiting_time)} seconds..."
+        )
+        for i in range(waiting_time):
+            print(
+                f"\033[KWaited for {i+1}/{waiting_time} seconds", end="\r", flush=True
+            )
+            sleep(1)
 
 
 class ClientCredentials(TypedDict):
@@ -47,9 +58,10 @@ class Token(TypedDict):
     token_type: str
 
 
-class Me(TypedDict):
+class Account(TypedDict):
     id: str
     username: str
+    acct: str
 
 
 class Mastodon:
@@ -94,18 +106,14 @@ class Mastodon:
         self.__instance_hash = blake2b(self.__instance_url.encode("utf-8")).hexdigest()
 
     def create_token(self, code: str) -> Token:
-        response = requests.post(
-            self.__instance_url + TOKEN_PATH,
-            data={
-                "grant_type": "authorization_code",
-                "code": code,
-                "client_id": self.__client_credentials["client_id"],
-                "client_secret": self.__client_credentials["client_secret"],
-                "redirect_uri": REDIRECT_URI,
-            },
-        )
-        response.raise_for_status()
-        j = response.json()
+        data = {
+            "grant_type": "authorization_code",
+            "code": code,
+            "client_id": self.__client_credentials["client_id"],
+            "client_secret": self.__client_credentials["client_secret"],
+            "redirect_uri": REDIRECT_URI,
+        }
+        j = self.__request("POST", self.__instance_url + TOKEN_PATH, data=data).json()
         self.__cached_user_credentials = j
         with open(self.__user_credentials_path, "w") as file:
             dump(j, file)
@@ -120,31 +128,69 @@ class Mastodon:
         if limit:
             params["limit"] = str(limit)
 
-        response = requests.get(
+        return self.__request(
+            "GET",
             self.__instance_url
             + ACCOUNTS_STATUSES_PATH.replace("{ACCOUNT_ID}", account_id),
             params=params,
-            headers=self.__auth_headers,
-        )
+            auth=True,
+        ).json()
+
+    def download_attachment(self, url: str) -> Optional[bytes]:
+        auth = url.startswith(self.__instance_url)
+
+        response = self.__request("GET", url, raise_for_status=False, auth=auth)
+        if response.status_code == 404:
+            return None
+        response.raise_for_status()
+        return response.content
+
+    def search_accounts(
+        self, q: str, limit: Optional[int] = None, resolve: Optional[bool] = None
+    ) -> list[Account]:
+        params: dict[str, str] = {"q": q}
+        if limit is not None:
+            params["limit"] = str(limit)
+        if resolve is not None:
+            params["resolve"] = "true" if resolve else "false"
+        return self.__request(
+            "GET", self.__instance_url + ACCOUNTS_SEARCH_PATH, params=params, auth=True
+        ).json()
+
+    def get_me(self) -> Account:
+        return self.__request(
+            "GET", self.__instance_url + VERIFIY_CREDENTIALS_PATH, auth=True
+        ).json()
+
+    def purge_cache(self) -> None:
+        for file in listdir(self.__cache_dir):
+            remove(join(self.__cache_dir, file))
+        self.__cached_client_credentials = None
+        self.__cached_user_credentials = None
+
+    def __request(
+        self,
+        method: str,
+        url: str,
+        raise_for_status: bool = True,
+        auth: bool = False,
+        **kwargs,
+    ) -> requests.Response:
+        if "headers" not in kwargs:
+            kwargs["headers"] = {}
+        kwargs["headers"]["User-Agent"] = USER_AGENT
+        if auth:
+            kwargs["headers"] |= self.__auth_headers
+        if not "timeout" in kwargs:
+            kwargs["timeout"] = TIMEOUT
+        response = requests.request(method, url, **kwargs)
         if response.status_code == 429:
             raise RateLimitExceededException(
                 datetime.fromisoformat(response.headers["X-RateLimit-Reset"])
             )
-        response.raise_for_status()
-        j = response.json()
-        return j
-
-    def download_attachment(self, url: str) -> bytes:
-        response = requests.get(url, headers=self.__auth_headers)
-        response.raise_for_status()
-        return response.content
-
-    def get_me(self) -> Me:
-        response = requests.get(
-            self.__instance_url + VERIFIY_CREDENTIALS_PATH, headers=self.__auth_headers
-        )
-        response.raise_for_status()
-        return response.json()
+        if raise_for_status:
+            response.raise_for_status()
+        return response
 
     @property
     def authorize_url(self) -> str:
@@ -197,17 +243,15 @@ class Mastodon:
             with open(cache_file) as file:
                 credentials = load(file)
         else:
-            response = requests.post(
-                self.__instance_url + APP_CREATE_PATH,
-                json={
-                    "client_name": CLIENT_NAME,
-                    "redirect_uris": REDIRECT_URI,
-                    "scopes": SCOPES,
-                    "website": WEBSITE,
-                },
-            )
-            response.raise_for_status()
-            credentials = response.json()
+            json = {
+                "client_name": CLIENT_NAME,
+                "redirect_uris": REDIRECT_URI,
+                "scopes": SCOPES,
+                "website": WEBSITE,
+            }
+            credentials = self.__request(
+                "POST", self.__instance_url + APP_CREATE_PATH, json=json
+            ).json()
             with open(cache_file, "w") as file:
                 dump(credentials, file)
         self.__cached_client_credentials = credentials
