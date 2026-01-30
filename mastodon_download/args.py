@@ -67,3 +67,7 @@ parser.add_argument(
         "CACHE_DIR", user_cache_dir("mastodon-download-toots", "AdriDevelopsThings")
     ),
 )
+
+parser.add_argument(
+    "--rate-limit", type=float, help="Limit the requests per second per instance"
+)

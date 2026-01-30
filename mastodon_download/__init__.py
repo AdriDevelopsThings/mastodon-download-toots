@@ -15,7 +15,10 @@ from mastodon_download.sqlite import SqliteDatabase
 def main() -> None:
     args = parser.parse_args()
     mastodon = Mastodon.from_instance_domain(
-        args.domain, args.cache_dir, account_profile=args.account_profile
+        args.domain,
+        args.cache_dir,
+        account_profile=args.account_profile,
+        req_rate_limit=args.rate_limit,
     )
     if args.purge_cache:
         mastodon.purge_cache()

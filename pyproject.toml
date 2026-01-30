@@ -1,6 +1,6 @@
 [project]
 name = "mastodon-download-toots"
-version = "0.2.1"
+version = "0.2.2"
 description = "Download mastodon toots as json including media"
 readme = "README.md"
 requires-python = ">=3.11"

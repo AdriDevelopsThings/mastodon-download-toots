@@ -79,9 +79,7 @@ class Mastodon:
         return j
 
     @classmethod
-    def from_instance_domain(
-        cls, domain: str, cache_dir: str, account_profile: Optional[str] = None
-    ) -> "Mastodon":
+    def from_instance_domain(cls, domain: str, cache_dir: str, **kwargs) -> "Mastodon":
         response = requests.get(f"https://{domain}{WEBFINGER_PATH}")
         if not response.url.endswith(WEBFINGER_PATH):
             raise Exception(
@@ -91,13 +89,19 @@ class Mastodon:
         requests.head(instance_url).raise_for_status()
         if Mastodon.__get_nodeinfo(instance_url)["software"]["name"] != "mastodon":
             raise Exception(f"Instance '{instance_url}' is not a mastodon instance")
-        return cls(instance_url, cache_dir, account_profile=account_profile)
+        return cls(instance_url, cache_dir, **kwargs)
 
     def __init__(
-        self, instance_url: str, cache_dir: str, account_profile: Optional[str] = None
+        self,
+        instance_url: str,
+        cache_dir: str,
+        account_profile: Optional[str] = None,
+        req_rate_limit: Optional[float] = None,
     ) -> None:
         self.__instance_url = instance_url
         self.__account_profile = account_profile
+        self.__req_waiting_time = 1 / req_rate_limit if req_rate_limit else None
+        self.__last_request: Optional[float] = None
         self.__cached_client_credentials: Optional[ClientCredentials] = None
         self.__cached_user_credentials: Optional[Token] = None
         self.__cache_dir = cache_dir
@@ -189,7 +193,15 @@ class Mastodon:
             kwargs["headers"] |= self.__auth_headers
         if not "timeout" in kwargs:
             kwargs["timeout"] = TIMEOUT
+
+        if self.__req_waiting_time and self.__last_request:
+            cur = time()
+            wu = self.__last_request + self.__req_waiting_time
+            if wu > cur:
+                sleep(wu - cur)
+
         response = requests.request(method, url, **kwargs)
+        self.__last_request = time()
         if response.status_code == 429:
             raise RateLimitExceededException(
                 datetime.fromisoformat(response.headers["X-RateLimit-Reset"])
