@@ -40,7 +40,7 @@ class SqliteDatabase:
             if acc[0] != account["id"]:
                 a = loads(acc[1])
                 raise Exception(
-                    f"Database contains account {acc['username']} ({acc['id']}) but currently running for account {account['username']} ({account['id']})"
+                    f"Database contains account {a['username']} ({acc[0]}) but currently running for account {account['username']} ({account['id']})"
                 )
 
         self.__cur.execute(
